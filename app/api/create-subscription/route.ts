@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-04-30.basil",
+  // On supprime la version d'API pour éviter les conflits de version
+  // Stripe utilisera automatiquement la version compatible
 });
 
 export async function POST(request: Request) {
   console.log("🔄 [API] Création session Stripe");
 
   if (!process.env.STRIPE_SECRET_KEY) {
-    console.error("❌ Clé Stripe manquante dans .env");
     return NextResponse.json({ error: "Clé Stripe manquante" }, { status: 500 });
   }
 
@@ -17,7 +17,6 @@ export async function POST(request: Request) {
     const { email } = await request.json();
 
     if (!email) {
-      console.error("❌ Email requis mais non fourni");
       return NextResponse.json({ error: "Email requis" }, { status: 400 });
     }
 
@@ -39,14 +38,10 @@ export async function POST(request: Request) {
       allow_promotion_codes: true,
     });
 
-    console.log("✅ Session Stripe créée avec succès pour :", email);
     return NextResponse.json({ url: session.url });
 
   } catch (error: any) {
-    console.error("❌ Stripe error :", error.message || error);
-    return NextResponse.json(
-      { error: error.message || "Erreur interne Stripe" },
-      { status: 500 }
-    );
+    console.error("❌ Stripe error :", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
