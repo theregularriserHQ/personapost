@@ -1,79 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Navbar from "@/components/ui/navbar";
 
-export default function SuccessPage() {
-  const router = useRouter();
+function SuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
-  const { user, loading: authLoading } = useAuth();
-
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user || !sessionId) {
-      router.replace("/dashboard");
-      return;
+    const id = searchParams.get("session_id");
+    setSessionId(id);
+
+    if (id) {
+      // Tu peux ici vérifier le statut du paiement via une API route si tu veux
+      setStatus("success");
+    } else {
+      setStatus("error");
     }
+  }, [searchParams]);
 
-    const activateTrial = async () => {
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          subscriptionStatus: "premium_active",
-          trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center px-6">
+      <div className="max-w-md w-full text-center">
+        {status === "loading" && (
+          <div>
+            <div className="animate-spin h-12 w-12 border-4 border-violet-500 border-t-transparent rounded-full mx-auto mb-6"></div>
+            <p className="text-xl">Vérification de ton paiement...</p>
+          </div>
+        )}
 
-        setStatus("success");
+        {status === "success" && (
+          <div>
+            <div className="text-6xl mb-6">🎉</div>
+            <h1 className="text-4xl font-bold mb-4">Paiement réussi !</h1>
+            <p className="text-zinc-400 mb-8">
+              Bienvenue dans l’essai gratuit de 7 jours.<br />
+              Tu peux maintenant générer tes posts LinkedIn.
+            </p>
 
-        setTimeout(() => {
-          router.replace("/dashboard");
-        }, 1600);
-      } catch (err) {
-        console.error(err);
-        setStatus("error");
-      }
-    };
+            <Link 
+              href="/generate" 
+              className="inline-block bg-violet-600 hover:bg-violet-700 transition px-8 py-4 rounded-2xl text-lg font-semibold"
+            >
+              Commencer à générer mes posts →
+            </Link>
+          </div>
+        )}
 
-    activateTrial();
-  }, [user, sessionId, router, authLoading]);
-
-  if (authLoading || status === "loading") {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-6 animate-spin">⏳</div>
-          <p className="text-white text-xl">Activation de ton essai gratuit 7 jours...</p>
-        </div>
+        {status === "error" && (
+          <div>
+            <div className="text-6xl mb-6">😕</div>
+            <h1 className="text-3xl font-bold mb-4">Oups...</h1>
+            <p className="text-zinc-400 mb-8">
+              Impossible de vérifier ton paiement.<br />
+              Merci de réessayer ou de contacter le support.
+            </p>
+            <Link href="/generate" className="text-violet-400 hover:underline">
+              Retourner à la génération
+            </Link>
+          </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
+export default function SuccessPage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-zinc-900 border border-zinc-700 rounded-3xl p-12 text-center">
-          {status === "success" ? (
-            <>
-              <div className="mx-auto w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-5xl mb-8">
-                🎉
-              </div>
-              <h1 className="text-4xl font-bold text-white mb-3">Bienvenue dans PersonaPost !</h1>
-              <p className="text-emerald-400 text-2xl mb-8">Ton essai gratuit de 7 jours est activé</p>
-              <p className="text-zinc-400">Redirection vers le dashboard...</p>
-            </>
-          ) : (
-            <p className="text-red-400">Erreur lors de l’activation. Reviens sur le dashboard.</p>
-          )}
+      <Suspense fallback={
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">
+          Chargement...
         </div>
-      </div>
+      }>
+        <SuccessContent />
+      </Suspense>
     </>
   );
 }
