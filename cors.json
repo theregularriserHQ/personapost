@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://obscure-space-adventure-97gv9rq64645hxvp4-3000.app.github.dev",
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "responseHeader": ["Content-Type", "Authorization", "X-Goog-Upload-Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
